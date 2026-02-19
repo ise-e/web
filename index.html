@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>댓글 게시판</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      padding: 40px 16px;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      color: #1a1a2e;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #888;
+      font-size: 0.9rem;
+      margin-bottom: 36px;
+    }
+
+    /* 댓글 작성 폼 */
+    .write-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+      margin-bottom: 32px;
+    }
+
+    .write-box h2 {
+      font-size: 1.1rem;
+      color: #333;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .write-box h2::before {
+      content: '✏️';
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .form-row input {
+      flex: 1;
+      padding: 11px 14px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #fafafa;
+    }
+
+    .form-row input:focus {
+      border-color: #5c6ef8;
+      background: #fff;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      resize: vertical;
+      min-height: 100px;
+      font-family: inherit;
+      background: #fafafa;
+      transition: border-color 0.2s;
+      margin-bottom: 14px;
+    }
+
+    textarea:focus {
+      border-color: #5c6ef8;
+      background: #fff;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #5c6ef8, #8a5cf7);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .submit-btn:hover { opacity: 0.9; }
+    .submit-btn:active { transform: scale(0.98); }
+
+    /* 댓글 목록 */
+    .comment-count {
+      font-size: 0.95rem;
+      color: #555;
+      font-weight: 600;
+      margin-bottom: 14px;
+      padding-left: 4px;
+    }
+
+    .comment-count span {
+      color: #5c6ef8;
+    }
+
+    .comment-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .comment-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px 22px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .comment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .comment-author {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .author-info .name {
+      font-weight: 700;
+      color: #1a1a2e;
+      font-size: 0.95rem;
+    }
+
+    .author-info .date {
+      font-size: 0.78rem;
+      color: #aaa;
+      margin-top: 1px;
+    }
+
+    .delete-btn {
+      padding: 6px 14px;
+      background: #fff0f0;
+      color: #e05252;
+      border: 1.5px solid #fcc;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .delete-btn:hover { background: #ffe0e0; }
+
+    .comment-body {
+      color: #444;
+      font-size: 0.97rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* 삭제 확인 인라인 폼 */
+    .delete-form {
+      display: none;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1.5px dashed #eee;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .delete-form.visible { display: flex; gap: 8px; align-items: center; }
+
+    .delete-form input {
+      flex: 1;
+      padding: 9px 12px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .delete-form input:focus { border-color: #e05252; }
+
+    .delete-form .confirm-btn {
+      padding: 9px 16px;
+      background: #e05252;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+
+    .delete-form .confirm-btn:hover { opacity: 0.85; }
+
+    .delete-form .cancel-btn {
+      padding: 9px 14px;
+      background: #f0f0f0;
+      color: #666;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .delete-form .cancel-btn:hover { background: #e5e5e5; }
+
+    /* 알림 토스트 */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1a1a2e;
+      color: #fff;
+      padding: 13px 26px;
+      border-radius: 50px;
+      font-size: 0.92rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 999;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.error { background: #e05252; }
+    .toast.success { background: #3dbb7a; }
+
+    /* 빈 댓글 안내 */
+    .empty-msg {
+      text-align: center;
+      color: #bbb;
+      padding: 48px 0;
+      font-size: 1rem;
+    }
+
+    .empty-msg .icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+    @media (max-width: 500px) {
+      .form-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>💬 댓글 게시판</h1>
+  <p class="subtitle">이름과 비밀번호를 입력하고 댓글을 남겨보세요</p>
+
+  <!-- 댓글 작성 폼 -->
+  <div class="write-box">
+    <h2>댓글 작성</h2>
+    <div class="form-row">
+      <input type="text" id="inputName" placeholder="이름" maxlength="20" />
+      <input type="password" id="inputPw" placeholder="비밀번호 (삭제 시 필요)" maxlength="30" />
+    </div>
+    <textarea id="inputContent" placeholder="댓글을 입력해주세요..."></textarea>
+    <button class="submit-btn" onclick="submitComment()">댓글 등록</button>
+  </div>
+
+  <!-- 댓글 목록 -->
+  <div class="comment-count">전체 댓글 <span id="countNum">0</span>개</div>
+  <div class="comment-list" id="commentList"></div>
+</div>
+
+<!-- 토스트 알림 -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // 아바타 색상 팔레트
+  const COLORS = [
+    '#5c6ef8','#8a5cf7','#f85c7f','#f8a35c',
+    '#3dbb7a','#5cb8f8','#e05252','#b05cf8',
+  ];
+
+  function getColor(name) {
+    let hash = 0;
+    for (let c of name) hash = (hash * 31 + c.charCodeAt(0)) & 0xffffffff;
+    return COLORS[Math.abs(hash) % COLORS.length];
+  }
+
+  // localStorage 키
+  const STORAGE_KEY = 'comment_board_v1';
+
+  function loadComments() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+
+  function saveComments(list) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  }
+
+  function formatDate(ts) {
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} `
+         + `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  // 해시 함수 (간단한 비밀번호 난독화)
+  function simpleHash(str) {
+    let h = 5381;
+    for (let i = 0; i < str.length; i++)
+      h = (((h << 5) + h) + str.charCodeAt(i)) | 0;
+    return String(h >>> 0);
+  }
+
+  /* ───────── 렌더링 ───────── */
+  function render() {
+    const list = loadComments();
+    const container = document.getElementById('commentList');
+    document.getElementById('countNum').textContent = list.length;
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div class="empty-msg">
+          <div class="icon">🗨️</div>
+          <div>아직 댓글이 없습니다. 첫 번째 댓글을 남겨보세요!</div>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = list.slice().reverse().map(c => `
+      <div class="comment-card" id="card-${c.id}">
+        <div class="comment-header">
+          <div class="comment-author">
+            <div class="avatar" style="background:${getColor(c.name)}">${c.name[0].toUpperCase()}</div>
+            <div class="author-info">
+              <div class="name">${escapeHtml(c.name)}</div>
+              <div class="date">${formatDate(c.ts)}</div>
+            </div>
+          </div>
+          <button class="delete-btn" onclick="toggleDeleteForm('${c.id}')">🗑 삭제</button>
+        </div>
+        <div class="comment-body">${escapeHtml(c.content)}</div>
+        <div class="delete-form" id="del-${c.id}">
+          <input type="password" placeholder="비밀번호를 입력하세요"
+                 id="pw-${c.id}" onkeydown="if(event.key==='Enter') confirmDelete('${c.id}')" />
+          <button class="confirm-btn" onclick="confirmDelete('${c.id}')">확인</button>
+          <button class="cancel-btn"  onclick="toggleDeleteForm('${c.id}')">취소</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+              .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ───────── 댓글 등록 ───────── */
+  function submitComment() {
+    const name    = document.getElementById('inputName').value.trim();
+    const pw      = document.getElementById('inputPw').value;
+    const content = document.getElementById('inputContent').value.trim();
+
+    if (!name)    return showToast('이름을 입력해주세요.', 'error');
+    if (!pw)      return showToast('비밀번호를 입력해주세요.', 'error');
+    if (pw.length < 4) return showToast('비밀번호는 4자 이상 입력해주세요.', 'error');
+    if (!content) return showToast('댓글 내용을 입력해주세요.', 'error');
+
+    const comment = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      name,
+      pwHash: simpleHash(pw),
+      content,
+      ts: Date.now(),
+    };
+
+    const list = loadComments();
+    list.push(comment);
+    saveComments(list);
+
+    document.getElementById('inputName').value    = '';
+    document.getElementById('inputPw').value      = '';
+    document.getElementById('inputContent').value = '';
+
+    render();
+    showToast('댓글이 등록되었습니다! 🎉', 'success');
+  }
+
+  /* ───────── 삭제 폼 토글 ───────── */
+  function toggleDeleteForm(id) {
+    const form = document.getElementById(`del-${id}`);
+    const isVisible = form.classList.contains('visible');
+    // 다른 열린 폼 닫기
+    document.querySelectorAll('.delete-form.visible').forEach(f => {
+      f.classList.remove('visible');
+      f.querySelector('input').value = '';
+    });
+    if (!isVisible) {
+      form.classList.add('visible');
+      form.querySelector('input').focus();
+    }
+  }
+
+  /* ───────── 삭제 확인 ───────── */
+  function confirmDelete(id) {
+    const pwInput = document.getElementById(`pw-${id}`);
+    const pw = pwInput.value;
+
+    if (!pw) return showToast('비밀번호를 입력해주세요.', 'error');
+
+    const list = loadComments();
+    const idx  = list.findIndex(c => c.id === id);
+
+    if (idx === -1) return;
+
+    if (list[idx].pwHash !== simpleHash(pw)) {
+      pwInput.value = '';
+      pwInput.focus();
+      return showToast('비밀번호가 올바르지 않습니다.', 'error');
+    }
+
+    list.splice(idx, 1);
+    saveComments(list);
+    render();
+    showToast('댓글이 삭제되었습니다.', 'success');
+  }
+
+  /* ───────── 토스트 알림 ───────── */
+  let toastTimer;
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.className = 'toast'; }, 2600);
+  }
+
+  // 초기 렌더
+  render();
+</script>
+</body>
+</html>
