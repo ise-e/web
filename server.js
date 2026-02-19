@@ -30,6 +30,10 @@ const pool = process.env.DATABASE_URL
 
 // ─── DB 초기화 (테이블 자동 생성) ────────────────────────
 async function initDB() {
+  // 연결 정보 진단 로그 (비밀번호 제외)
+  console.log('🔍 DATABASE_URL 존재 여부:', !!process.env.DATABASE_URL);
+  console.log('🔍 DB_HOST:', process.env.DB_HOST || '(없음)');
+
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS comments (
@@ -42,7 +46,9 @@ async function initDB() {
     `);
     console.log('✅ DB 연결 성공 & 테이블 준비 완료');
   } catch (err) {
-    console.error('❌ DB 초기화 실패:', err.message);
+    console.error('❌ DB 초기화 실패 상세:', err.message);
+    console.error('❌ 에러 코드:', err.code);
+    console.error('❌ 전체 에러:', err);
     process.exit(1);
   }
 }
