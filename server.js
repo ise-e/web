@@ -14,13 +14,19 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── PostgreSQL 연결 풀 ──────────────────────────────────
-const pool = new Pool({
-  host:     process.env.DB_HOST     || 'localhost',
-  port:     parseInt(process.env.DB_PORT) || 5432,
-  user:     process.env.DB_USER     || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME     || 'comment_board',
-});
+// Railway는 DATABASE_URL 하나로 제공, 로컬은 개별 변수 사용
+const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }, // Railway SSL 필수
+    })
+  : new Pool({
+      host:     process.env.DB_HOST     || 'localhost',
+      port:     parseInt(process.env.DB_PORT) || 5432,
+      user:     process.env.DB_USER     || 'postgres',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME     || 'comment_board',
+    });
 
 // ─── DB 초기화 (테이블 자동 생성) ────────────────────────
 async function initDB() {
