@@ -14,24 +14,42 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── PostgreSQL 연결 풀 ──────────────────────────────────
-// Railway는 DATABASE_URL 하나로 제공, 로컬은 개별 변수 사용
-const pool = process.env.DATABASE_URL
-  ? new Pool({
+// 우선순위: DATABASE_URL > PGHOST(Railway 자동) > DB_HOST(로컬)
+function createPool() {
+  if (process.env.DATABASE_URL) {
+    console.log('🔗 연결 방식: DATABASE_URL');
+    return new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }, // Railway SSL 필수
-    })
-  : new Pool({
-      host:     process.env.DB_HOST     || 'localhost',
-      port:     parseInt(process.env.DB_PORT) || 5432,
-      user:     process.env.DB_USER     || 'postgres',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME     || 'comment_board',
+      ssl: { rejectUnauthorized: false },
     });
+  }
+  if (process.env.PGHOST) {
+    console.log('🔗 연결 방식: PGHOST (Railway 자동 변수)');
+    return new Pool({
+      host:     process.env.PGHOST,
+      port:     parseInt(process.env.PGPORT)    || 5432,
+      user:     process.env.PGUSER,
+      password: process.env.PGPASSWORD,
+      database: process.env.PGDATABASE,
+      ssl: { rejectUnauthorized: false },
+    });
+  }
+  console.log('🔗 연결 방식: 로컬 DB_HOST');
+  return new Pool({
+    host:     process.env.DB_HOST     || 'localhost',
+    port:     parseInt(process.env.DB_PORT) || 5432,
+    user:     process.env.DB_USER     || 'postgres',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME     || 'comment_board',
+  });
+}
+const pool = createPool();
 
 // ─── DB 초기화 (테이블 자동 생성) ────────────────────────
 async function initDB() {
   // 연결 정보 진단 로그 (비밀번호 제외)
-  console.log('🔍 DATABASE_URL 존재 여부:', !!process.env.DATABASE_URL);
+  console.log('🔍 DATABASE_URL:', !!process.env.DATABASE_URL);
+  console.log('🔍 PGHOST:', process.env.PGHOST || '(없음)');
   console.log('🔍 DB_HOST:', process.env.DB_HOST || '(없음)');
 
   try {
